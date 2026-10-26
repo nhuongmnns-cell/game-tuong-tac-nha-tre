@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giải Cứu Đồ Chơi Cho Ếch Xanh</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: Arial, sans-serif; 
+            background-color: #e0f7fa; /* Nền xanh nhạt dịu mắt */
+            overflow: hidden; /* Chống cuộn trang trên tivi cảm ứng */
+            touch-action: manipulation; /* Tối ưu thao tác chạm */
+            user-select: none;
+        }
+        #game-container { 
+            width: 100vw; 
+            height: 100vh; 
+            display: flex; 
+            position: relative; 
+        }
+        /* Khu vực của Ếch xanh và Rổ */
+        #left-zone { 
+            width: 30%; 
+            background: #c8e6c9; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            border-right: 5px dashed #81c784; 
+            z-index: 2; 
+        }
+        /* Bãi đất trống chứa đồ chơi */
+        #right-zone { 
+            width: 70%; 
+            position: relative; 
+        }
+        .frog { 
+            font-size: 8rem; 
+            transition: transform 0.3s; 
+        }
+        .basket { 
+            width: 200px; 
+            height: 120px; 
+            background: #2e7d32; 
+            border-radius: 10px 10px 60px 60px; 
+            position: relative; 
+            margin-top: 20px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            color: white; 
+            font-weight: bold; 
+            font-size: 1.5rem; 
+            text-align: center; 
+            border: 5px solid #1b5e20;
+            box-shadow: 0px 10px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Thiết kế các món đồ chơi */
+        .toy { 
+            position: absolute; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .toy svg {
+            filter: drop-shadow(4px 6px 8px rgba(0,0,0,0.4)); /* Tạo bóng đổ 3D cho đồ chơi */
+        }
+        .toy:active {
+            transform: scale(0.9); /* Hiệu ứng nhấn lún xuống */
+        }
+
+        /* Đồ chơi màu xanh (đáp án đúng) */
+        .green { 
+            color: #4caf50; 
+        }
+        /* Đồ chơi màu đỏ (đáp án sai) */
+        .red { 
+            color: #f44336; 
+        }
+        
+        /* Hiệu ứng rung lắc khi chọn sai */
+        .shake { 
+            animation: shake 0.5s; 
+        }
+        @keyframes shake { 
+            0% { transform: translateX(0); } 
+            25% { transform: translateX(-15px) rotate(-10deg); } 
+            50% { transform: translateX(15px) rotate(10deg); } 
+            75% { transform: translateX(-15px) rotate(-10deg); } 
+            100% { transform: translateX(0); } 
+        }
+        
+        /* Màn hình chiến thắng */
+        .win-screen { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(255,255,255,0.95); 
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 10; 
+        }
+        .win-text { 
+            font-size: 5rem; 
+            color: #ff5722; 
+            font-weight: bold; 
+            text-align: center; 
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.2); 
+        }
+        
+        /* Chữ ký thương hiệu góc trái */
+        #brand { 
+            position: absolute; 
+            bottom: 15px; 
+            left: 15px; 
+            font-size: 1.2rem; 
+            color: #2e7d32; 
+            font-weight: bold; 
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="left-zone">
+            <!-- Khu vực Ếch xanh -->
+            <div class="frog" id="frog" onclick="introVoice()">🐸</div>
+            <div class="basket">Rổ Màu Xanh</div>
+        </div>
+        
+        <!-- Khu vực đồ chơi lộn xộn -->
+        <div id="right-zone"></div>
+        
+        <div id="brand">Thiết kế: Vàng Nhương</div>
+    </div>
+    
+    <!-- Màn hình chúc mừng khi hoàn thành -->
+    <div class="win-screen" id="win-screen">
+        <!-- Thêm lớp pháo hoa phía sau chữ -->
+        <canvas id="fireworks" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"></canvas>
+        
+        <div class="win-text" style="z-index: 2; position: relative;">Hoan hô bé giỏi quá! 🎉</div>
+        <div class="frog" style="font-size: 12rem; z-index: 2; position: relative;">🐸🕺</div>
+        <button onclick="location.reload()" style="margin-top: 40px; padding: 20px 40px; font-size: 2.5rem; background: #4caf50; color: white; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0 5px 10px rgba(0,0,0,0.3); z-index: 2; position: relative;">Chơi lại nhé!</button>
+    </div>
+
+    <script>
+        // Khởi tạo các tệp âm thanh tự ghi âm của cô giáo
+        // LƯU Ý QUAN TRỌNG: Bạn cần để các file âm thanh này cùng một thư mục với file game (file .html)
+        const audioIntro = new Audio('loi_chao.mp3');      // Câu: "Các bé ơi, hãy tìm giúp ếch xanh..."
+        const audioCorrect = new Audio('dung_roi.mp3');    // Câu: "Đúng rồi, màu xanh"
+        const audioIncorrect = new Audio('sai_roi.mp3');   // Câu: "Ôi, màu đỏ mất rồi. Bé chọn lại nhé!"
+        const audioWin = new Audio('chien_thang.mp3');     // Câu: "Hoan hô! Bé giỏi quá! Đã cất gọn đồ chơi màu xanh."
+        const audioFireworks = new Audio('phao_hoa.mp3');  // Tiếng pháo hoa nổ đùng đùng
+
+        // Hàm phát âm thanh (tự động ngắt âm thanh cũ đang phát để không bị đè lên nhau)
+        function playSound(audioElement) {
+            audioIntro.pause(); audioIntro.currentTime = 0;
+            audioCorrect.pause(); audioCorrect.currentTime = 0;
+            audioIncorrect.pause(); audioIncorrect.currentTime = 0;
+            audioWin.pause(); audioWin.currentTime = 0;
+            
+            // Lệnh phát âm thanh
+            audioElement.play().catch(err => console.log("Cần chạm vào màn hình trước khi phát âm thanh"));
+        }
+
+        function introVoice() {
+            playSound(audioIntro);
+        }
+
+        const rightZone = document.getElementById('right-zone');
+        const winScreen = document.getElementById('win-screen');
+        const frog = document.getElementById('frog');
+        let greenCount = 0;
+        const totalGreen = 5; // Tổng số đồ chơi màu xanh cần thu thập
+
+        // --- Logic tạo hiệu ứng pháo hoa rực rỡ ---
+        const canvas = document.getElementById('fireworks');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function createExplosion(x, y) {
+            for (let i = 0; i < 60; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 15, // Vận tốc bay ngang
+                    vy: (Math.random() - 0.5) * 15, // Vận tốc bay dọc
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`, // Màu sắc ngẫu nhiên
+                    size: Math.random() * 8 + 3, // Kích thước hạt pháo hoa to nhỏ
+                    life: Math.random() * 50 + 50 // Thời gian tồn tại
+                });
+            }
+        }
+
+        function startFireworks() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            
+            function loop() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.15; // Trọng lực làm pháo hoa rơi cong xuống
+                    p.life--;
+                    
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                    } else {
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                requestAnimationFrame(loop);
+            }
+            loop();
+
+            // Tạo nhiều chùm pháo hoa nổ liên tiếp
+            let count = 0;
+            let interval = setInterval(() => {
+                createExplosion(Math.random() * canvas.width, Math.random() * (canvas.height * 0.6));
+                
+                // Phát tiếng pháo hoa nổ mỗi khi tạo chùm mới
+                let fwSound = audioFireworks.cloneNode(); // Nhân bản để tiếng nổ có thể đè lên nhau chân thực
+                fwSound.volume = 0.4; // Chỉnh nhỏ âm lượng pháo hoa để không lấn át giọng cô giáo
+                fwSound.play().catch(err => console.log(err));
+
+                count++;
+                if (count > 15) clearInterval(interval); // Dừng tạo pháo hoa sau 15 chùm
+            }, 400);
+        }
+        // --- Kết thúc Logic pháo hoa ---
+
+        // Hình ảnh vector SVG của các loại đồ chơi (Đã tăng kích thước lên 150)
+        const svgs = {
+            car: `<svg viewBox="0 0 24 24" width="150" height="150" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`,
+            ball: `<svg viewBox="0 0 24 24" width="150" height="150" fill="currentColor"><circle cx="12" cy="12" r="10"/><path fill="rgba(255,255,255,0.4)" d="M12 2a10 10 0 0 0-4.6 1.12C9.5 5 11 8.27 11 12s-1.5 7-3.6 8.88A10 10 0 0 0 12 22a10 10 0 0 0 4.6-1.12C14.5 19 13 15.73 13 12s1.5-7 3.6-8.88A10 10 0 0 0 12 2z"/></svg>`,
+            plane: `<svg viewBox="0 0 24 24" width="150" height="150" fill="currentColor"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>`
+        };
+
+        // Danh sách các món đồ chơi (xanh và đỏ)
+        const toys = [
+            { type: 'car', color: 'green' },
+            { type: 'ball', color: 'red' },
+            { type: 'plane', color: 'green' },
+            { type: 'car', color: 'red' },
+            { type: 'ball', color: 'green' },
+            { type: 'plane', color: 'red' },
+            { type: 'ball', color: 'red' },
+            { type: 'plane', color: 'green' },
+            { type: 'car', color: 'green' }
+        ];
+
+        // Trộn ngẫu nhiên vị trí mảng đồ chơi
+        toys.sort(() => Math.random() - 0.5);
+
+        // Tạo sẵn 9 vị trí (lưới 3x3) để 9 đồ chơi được chia đều, không bị đè lên nhau
+        const positions = [
+            { top: 12, left: 10 }, { top: 12, left: 40 }, { top: 12, left: 70 },
+            { top: 42, left: 10 }, { top: 42, left: 40 }, { top: 42, left: 70 },
+            { top: 72, left: 10 }, { top: 72, left: 40 }, { top: 72, left: 70 }
+        ];
+        
+        // Trộn ngẫu nhiên danh sách vị trí này
+        positions.sort(() => Math.random() - 0.5);
+
+        // Sinh đồ chơi ra màn hình
+        toys.forEach((toy, index) => {
+            const el = document.createElement('div');
+            el.className = `toy ${toy.color}`;
+            el.innerHTML = svgs[toy.type]; // Chèn hình ảnh đồ chơi tương ứng
+            
+            // Gán vị trí cho đồ chơi từ lưới vị trí để không bị đè, thêm độ lệch nhỏ (±4%) để tự nhiên hơn
+            const pos = positions[index];
+            const top = pos.top + (Math.random() * 8 - 4); 
+            const left = pos.left + (Math.random() * 8 - 4); 
+            el.style.top = top + '%';
+            el.style.left = left + '%';
+
+            // Sự kiện click (tương thích tốt với thao tác chạm)
+            el.onclick = () => handleToyClick(el, toy.color);
+
+            rightZone.appendChild(el);
+        });
+
+        // Xử lý logic khi trẻ chọn đồ chơi
+        function handleToyClick(el, color) {
+            if (color === 'green') {
+                playSound(audioCorrect);
+                
+                // Hiệu ứng bay vào rổ
+                el.style.transition = 'all 0.8s ease-in-out';
+                el.style.top = '60%'; // Vị trí rổ theo chiều dọc
+                el.style.left = '-30%'; // Vị trí rổ bên khu vực trái
+                el.style.opacity = '0'; // Mờ dần khi rơi vào rổ
+                el.style.transform = 'scale(0.3)';
+                
+                // Hiệu ứng ếch vui mừng
+                frog.style.transform = 'scale(1.2) translateY(-20px)';
+                setTimeout(() => frog.style.transform = 'scale(1) translateY(0)', 400);
+
+                // Khóa không cho chạm lại đồ chơi này
+                el.onclick = null;
+
+                greenCount++;
+                // Kiểm tra điều kiện chiến thắng
+                if (greenCount === totalGreen) {
+                    setTimeout(() => {
+                        winScreen.style.display = 'flex';
+                        startFireworks(); // Kích hoạt bắn pháo hoa
+                        playSound(audioWin);
+                    }, 1200);
+                }
+            } else {
+                // Trẻ chọn đồ chơi màu đỏ
+                playSound(audioIncorrect);
+                el.classList.add('shake'); // Rung lắc báo lỗi
+                setTimeout(() => {
+                    el.classList.remove('shake');
+                }, 500);
+            }
+        }
+
+        // Tự động phát âm thanh hướng dẫn khi vừa mở game
+        window.onload = () => {
+            setTimeout(introVoice, 1000);
+        }
+    </script>
+</body>
+</html>
